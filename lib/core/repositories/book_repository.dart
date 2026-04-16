@@ -42,20 +42,28 @@ class BookRepository {
       throw Exception('Failed to load books (${response.statusCode})');
     }
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final items = (data['items'] as List?) ?? const [];
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      return const [];
+    }
 
-    final books = items
-        .whereType<Map>()
-        .map((item) => Book.fromGoogleBooksJson(item.cast<String, dynamic>()))
-        .where((book) => book.id.isNotEmpty)
-        .toList(growable: false);
+    final items = decoded['items'];
+    if (items is! List) {
+      return const [];
+    }
 
-    for (final book in books) {
+    final books = <Book>[];
+    for (final item in items) {
+      final book = _mapItemToBook(item);
+      if (book == null || book.id.isEmpty) {
+        continue;
+      }
+
+      books.add(book);
       _cachedBooksById[book.id] = book;
     }
 
-    return books;
+    return List.unmodifiable(books);
   }
 
   Book? getById(String id) {
@@ -64,5 +72,25 @@ class BookRepository {
 
   void dispose() {
     _httpClient.close();
+  }
+
+  Book? _mapItemToBook(Object? item) {
+    if (item is! Map) {
+      return null;
+    }
+
+    final normalized = <String, dynamic>{};
+    for (final entry in item.entries) {
+      final key = entry.key;
+      if (key is String && key.isNotEmpty) {
+        normalized[key] = entry.value;
+      }
+    }
+
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    return Book.fromGoogleBooksJson(normalized);
   }
 }

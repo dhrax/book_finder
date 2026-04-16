@@ -26,28 +26,26 @@ class Book {
   final int? ratingsCount;
 
   factory Book.fromGoogleBooksJson(Map<String, dynamic> json) {
-    final volumeInfo =
-        (json['volumeInfo'] as Map?)?.cast<String, dynamic>() ??
-        const <String, dynamic>{};
-    final imageLinks =
-        (volumeInfo['imageLinks'] as Map?)?.cast<String, dynamic>() ??
-        const <String, dynamic>{};
+    final volumeInfo = _asStringKeyedMap(json['volumeInfo']);
+    final imageLinks = _asStringKeyedMap(volumeInfo['imageLinks']);
 
     return Book(
-      id: json['id'] as String? ?? '',
-      title: volumeInfo['title'] as String? ?? 'Untitled',
+      id: _readString(json['id']) ?? '',
+      title: _readString(volumeInfo['title']) ?? 'Untitled',
       authors: _asStringList(volumeInfo['authors']),
-      publishedDate: volumeInfo['publishedDate'] as String?,
-      description: volumeInfo['description'] as String?,
+      publishedDate: _readString(volumeInfo['publishedDate']),
+      description: _readString(volumeInfo['description']),
       thumbnailUrl: _normalizeThumbnailUrl(
-        imageLinks['thumbnail'] as String? ??
-            imageLinks['smallThumbnail'] as String?,
+        _readString(imageLinks['thumbnail']) ??
+            _readString(imageLinks['smallThumbnail']) ??
+            _readString(imageLinks['small']) ??
+            _readString(imageLinks['medium']),
       ),
       categories: _asStringList(volumeInfo['categories']),
-      publisher: volumeInfo['publisher'] as String?,
-      pageCount: (volumeInfo['pageCount'] as num?)?.toInt(),
-      averageRating: (volumeInfo['averageRating'] as num?)?.toDouble(),
-      ratingsCount: (volumeInfo['ratingsCount'] as num?)?.toInt(),
+      publisher: _readString(volumeInfo['publisher']),
+      pageCount: _readInt(volumeInfo['pageCount']),
+      averageRating: _readDouble(volumeInfo['averageRating']),
+      ratingsCount: _readInt(volumeInfo['ratingsCount']),
     );
   }
 
@@ -103,11 +101,28 @@ class Book {
       return null;
     }
 
-    if (ratingsCount == null) {
+    if (ratingsCount == null || ratingsCount == 0) {
       return averageRating!.toStringAsFixed(1);
     }
 
     return '${averageRating!.toStringAsFixed(1)} ($ratingsCount)';
+  }
+
+  static Map<String, dynamic> _asStringKeyedMap(Object? value) {
+    final map = value as Map?;
+    if (map == null) {
+      return const <String, dynamic>{};
+    }
+
+    final result = <String, dynamic>{};
+    for (final entry in map.entries) {
+      final key = entry.key;
+      if (key is String && key.isNotEmpty) {
+        result[key] = entry.value;
+      }
+    }
+
+    return result;
   }
 
   static List<String> _asStringList(Object? value) {
@@ -116,13 +131,74 @@ class Book {
       return const [];
     }
 
-    return list.whereType<String>().toList(growable: false);
+    final result = <String>[];
+    for (final item in list) {
+      final normalized = _readString(item);
+      if (normalized != null) {
+        result.add(normalized);
+      }
+    }
+
+    return List.unmodifiable(result);
+  }
+
+  static String? _readString(Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    final normalized = value.toString().trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  static int? _readInt(Object? value) {
+    if (value is int) {
+      return value > 0 ? value : null;
+    }
+
+    if (value is num) {
+      final normalized = value.toInt();
+      return normalized > 0 ? normalized : null;
+    }
+
+    final normalized = int.tryParse(_readString(value) ?? '');
+    if (normalized == null || normalized <= 0) {
+      return null;
+    }
+
+    return normalized;
+  }
+
+  static double? _readDouble(Object? value) {
+    if (value is double) {
+      return value >= 0 ? value : null;
+    }
+
+    if (value is num) {
+      final normalized = value.toDouble();
+      return normalized >= 0 ? normalized : null;
+    }
+
+    final normalized = double.tryParse(_readString(value) ?? '');
+    if (normalized == null || normalized < 0) {
+      return null;
+    }
+
+    return normalized;
   }
 
   static String? _normalizeThumbnailUrl(String? value) {
     final url = value?.trim();
     if (url == null || url.isEmpty) {
       return null;
+    }
+
+    if (url.startsWith('//')) {
+      return 'https:$url';
     }
 
     if (url.startsWith('http://')) {
