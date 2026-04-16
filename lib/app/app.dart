@@ -6,24 +6,29 @@ import 'package:book_finder/core/repositories/book_repository.dart';
 import 'package:flutter/material.dart';
 
 class BookFinderApp extends StatefulWidget {
-  const BookFinderApp({super.key});
+  const BookFinderApp({this.repository, super.key});
+
+  final BookRepository? repository;
 
   @override
   State<BookFinderApp> createState() => _BookFinderAppState();
 }
 
 class _BookFinderAppState extends State<BookFinderApp> {
+  late final BookRepository _repository;
   late final LibraryController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = LibraryController(BookRepository());
+    _repository = widget.repository ?? BookRepository();
+    _controller = LibraryController(_repository);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _repository.dispose();
     super.dispose();
   }
 

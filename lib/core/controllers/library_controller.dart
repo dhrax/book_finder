@@ -13,7 +13,7 @@ class LibraryController extends ChangeNotifier {
   List<Book> _searchResults = const [];
   String _query = '';
   String? _errorMessage;
-  final Set<String> _favoriteBookIds = <String>{'1'};
+  final Set<String> _favoriteBookIds = <String>{};
   final List<String> _searchHistory = <String>[];
 
   LibrarySearchState get searchState => _searchState;
