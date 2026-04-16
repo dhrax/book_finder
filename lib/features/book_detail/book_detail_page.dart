@@ -1,4 +1,5 @@
 import 'package:book_finder/core/controllers/library_controller.dart';
+import 'package:book_finder/core/models/book.dart';
 import 'package:book_finder/core/widgets/app_empty_state.dart';
 import 'package:flutter/material.dart';
 
@@ -48,23 +49,49 @@ class BookDetailPage extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(28),
                     ),
-                    child: Column(
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          book.title,
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '${book.author} - ${book.year}',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
+                        _BookCover(book: book),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                book.title,
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
                               ),
+                              const SizedBox(height: 10),
+                              Text(
+                                book.authorsLabel,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
+                                    ),
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _MetadataChip(label: book.publishedDateLabel),
+                                  if (book.publisher != null &&
+                                      book.publisher!.isNotEmpty)
+                                    _MetadataChip(label: book.publisher!),
+                                  if (book.pageCountLabel != null)
+                                    _MetadataChip(label: book.pageCountLabel!),
+                                  if (book.ratingLabel != null)
+                                    _MetadataChip(
+                                      label: 'Rating ${book.ratingLabel!}',
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -81,6 +108,23 @@ class BookDetailPage extends StatelessWidget {
                           : 'Save to favorites',
                     ),
                   ),
+                  if (book.categoriesLabel != null) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Categories',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: book.categories
+                          .map((category) => Chip(label: Text(category)))
+                          .toList(growable: false),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   Text(
                     'About this book',
@@ -90,7 +134,7 @@ class BookDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    book.description,
+                    book.descriptionOrFallback,
                     style: Theme.of(
                       context,
                     ).textTheme.bodyLarge?.copyWith(height: 1.5),
@@ -101,6 +145,61 @@ class BookDetailPage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _BookCover extends StatelessWidget {
+  const _BookCover({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 92,
+        height: 132,
+        color: colorScheme.surface,
+        child: book.hasThumbnail
+            ? Image.network(
+                book.thumbnailUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.menu_book_rounded,
+                    size: 40,
+                    color: colorScheme.primary,
+                  );
+                },
+              )
+            : Icon(
+                Icons.menu_book_rounded,
+                size: 40,
+                color: colorScheme.primary,
+              ),
+      ),
+    );
+  }
+}
+
+class _MetadataChip extends StatelessWidget {
+  const _MetadataChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label),
     );
   }
 }

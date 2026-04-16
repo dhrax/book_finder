@@ -28,22 +28,7 @@ class BookListTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 54,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  book.year.toString(),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              _BookThumbnail(book: book),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -57,14 +42,21 @@ class BookListTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      book.author,
+                      book.authorsLabel,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _buildMetaLine(book),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      book.description,
+                      book.descriptionOrFallback,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodyMedium,
@@ -84,6 +76,50 @@ class BookListTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  String _buildMetaLine(Book book) {
+    final parts = <String>[
+      book.publishedDateLabel,
+      if (book.publisher != null && book.publisher!.isNotEmpty) book.publisher!,
+    ];
+
+    return parts.join(' • ');
+  }
+}
+
+class _BookThumbnail extends StatelessWidget {
+  const _BookThumbnail({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 54,
+        height: 76,
+        color: colorScheme.primaryContainer,
+        child: book.hasThumbnail
+            ? Image.network(
+                book.thumbnailUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.menu_book_rounded,
+                    color: colorScheme.onPrimaryContainer,
+                  );
+                },
+              )
+            : Icon(
+                Icons.menu_book_rounded,
+                color: colorScheme.onPrimaryContainer,
+              ),
       ),
     );
   }
